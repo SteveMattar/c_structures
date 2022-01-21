@@ -147,6 +147,7 @@ int main() {
                 if (pAccount != NULL) {
                     printf("Amount to deposit: ");
                     scanf("%d", &amount);
+                    fflush(stdin);
                     printf("Your Name: ");
                     fgets(str, TRAN_BUFFER_SIZE, stdin);
                     str[strcspn(str, "\n")] = 0;
@@ -166,12 +167,13 @@ int main() {
                 pAccount = findAccountById(accounts, accountsLength,account_id);
                 if (pAccount != NULL) {
                     printf("Amount to withdraw: ");
-                    scanf("%d", &amount);
+                    scanf("%f", &amount);
+                    amount*=-1;
+                    fflush(stdin);
                     printf("Enter the reason for the withdrawal: ");
                     fgets(str, TRAN_BUFFER_SIZE, stdin);
                     str[strcspn(str, "\n")] = 0;
                     transaction = newTransaction(amount, str);
-                    withdraw(pAccount, transaction);
                     if (withdraw(pAccount, transaction) == TRUE) {
                         printf("Withdraw %d$ to account_id %d is done.\n", amount, account_id);
                     } else {
