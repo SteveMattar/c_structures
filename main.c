@@ -20,7 +20,7 @@ struct Customer {
     int id;
     char first_name[TRAN_BUFFER_SIZE];
     char last_name[TRAN_BUFFER_SIZE];
-    struct Account *accounts;
+    struct Account *accounts[CUST_ACCOUNTS_SIZE];
     int accounts_len;
 };
 
@@ -28,9 +28,9 @@ struct Account {
     int id;
     struct Customer *pCustomer;
     float balance;
-    struct Transaction *deposits;
-    struct Transaction *withdrawals;
-    struct Transaction *transactions;
+    struct Transaction *deposits[ACCT_DEPOSITS_SIZE];
+    struct Transaction *withdrawals[ACCT_WITHDRAWALS_SIZE];
+    struct Transaction *transactions[ACCT_DEPOSITS_SIZE+ACCT_WITHDRAWALS_SIZE];
     int deposits_len;
     int withdrawals_len;
     int transactions_len;
@@ -130,6 +130,8 @@ int main() {
                     if (pCustomer != NULL) {
                         account_id = accountsLength + 200;
                         accounts[accountsLength] = newAccount(pCustomer, account_id);
+                        pCustomer->accounts[pCustomer->accounts_len] = &accounts[accountsLength];
+                        pCustomer->accounts_len++;
                         printf("Account %d was successfully added.\n", account_id);
                         accountsLength++;
                     } else {
@@ -197,31 +199,21 @@ int main() {
 
 struct Customer newCustomer(int customer_id, char first_name[], char last_name[]) {
     struct Customer customer;
-    struct Account accounts[CUST_ACCOUNTS_SIZE];
     customer.id = customer_id;
     strcpy(customer.first_name, first_name);
     strcpy(customer.last_name, last_name);
-    customer.accounts = accounts;
     customer.accounts_len = 0;
     return customer;
 }
 
 struct Account newAccount(struct Customer *pCustomer, int account_id) {
     struct Account account;
-    struct Transaction deposits[ACCT_DEPOSITS_SIZE];
-    struct Transaction withdrawals[ACCT_WITHDRAWALS_SIZE];
-    struct Transaction transactions[ACCT_DEPOSITS_SIZE+ACCT_WITHDRAWALS_SIZE];
     account.id = account_id;
     account.balance = 0;
     account.pCustomer = pCustomer;
-    account.deposits=deposits;
     account.deposits_len = 0;
-    account.withdrawals=withdrawals;
     account.withdrawals_len = 0;
-    account.transactions=transactions;
     account.transactions_len = 0;
-    *((pCustomer->accounts) + pCustomer->accounts_len) = account;
-    pCustomer->accounts_len++;
     return account;
 }
 
@@ -235,9 +227,9 @@ struct Transaction newTransaction(float amount, char str[]) {
 
 int deposit(struct Account *pAccount, struct Transaction transaction) {
     if (pAccount->deposits_len < ACCT_DEPOSITS_SIZE) {
-        *((pAccount->deposits) + pAccount->deposits_len) = transaction;
+        pAccount->deposits[pAccount->deposits_len] = &transaction;
         pAccount->deposits_len++;
-        *((pAccount->transactions) + pAccount->transactions_len) = transaction;
+        pAccount->transactions[pAccount->transactions_len] = pAccount->deposits[pAccount->deposits_len];
         pAccount->transactions_len++;
         pAccount->balance += transaction.amount;
         return TRUE;
@@ -248,9 +240,9 @@ int deposit(struct Account *pAccount, struct Transaction transaction) {
 
 int withdraw(struct Account *pAccount, struct Transaction transaction) {
     if (pAccount->withdrawals_len < ACCT_WITHDRAWALS_SIZE) {
-        *((pAccount->withdrawals) + pAccount->withdrawals_len) = transaction;
+        pAccount->withdrawals[pAccount->withdrawals_len] = &transaction;
         pAccount->withdrawals_len++;
-        *((pAccount->transactions) + pAccount->transactions_len) = transaction;
+        pAccount->transactions[pAccount->transactions_len] = pAccount->withdrawals[pAccount->withdrawals_len];
         pAccount->transactions_len++;
         pAccount->balance += transaction.amount;
         return TRUE;
@@ -268,7 +260,7 @@ void listCustomerAccounts(struct Customer customers[], int customers_len) {
                 if (customers->accounts_len > 0) {
                     printf("\t-> Account\tBalance\n");
                     for (int j = 0; j < customers->accounts_len; j++) {
-                        printf("\t-> %d\t%.2f\n", (customers->accounts + j)->id, (customers->accounts + j)->balance);
+                        printf("\t-> %d\t%.2f\n", customers->accounts[j]->id, customers->accounts[j]->balance);
                     }
                 } else {
                     printf("\t -> No accounts found.");
