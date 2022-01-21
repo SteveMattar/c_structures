@@ -72,8 +72,8 @@ struct Date inputDate();
 
 
 int main() {
-    struct Customer customers[CUSTOMERS_SIZE] = {-1,"\0","\0",NULL,0};
-    struct Account accounts[ACCOUNTS_SIZE] = {-1,NULL,0, NULL,NULL,NULL,0,0,0};
+    struct Customer customers[CUSTOMERS_SIZE] = {{-1,"\0","\0",NULL,0}};
+    struct Account accounts[ACCOUNTS_SIZE] = {{-1,NULL,0, NULL,NULL,NULL,0,0,0}};
     int customersLength = 0, accountsLength = 0;
 
     int choice;
