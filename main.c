@@ -60,7 +60,7 @@ int withdraw(struct Account *, struct Transaction);
 
 void listCustomerAccounts(struct Customer[], int);
 
-void generateReport(struct Account[], int, struct Date, struct Date);
+void generateReport(struct Account[], int, int, struct Date, struct Date);
 
 struct Customer *findCustomerById(struct Customer[],int, int);
 
@@ -69,6 +69,8 @@ struct Account *findAccountById(struct Account[], int, int);
 struct Date getCurrentDate();
 
 struct Date inputDate();
+
+int isDateBetween(struct Date, struct Date, struct Date);
 
 
 int main() {
@@ -84,7 +86,7 @@ int main() {
     char first_name[TRAN_BUFFER_SIZE];
     char last_name[TRAN_BUFFER_SIZE];
     int account_id;
-    int amount;
+    float amount;
     char str[TRAN_BUFFER_SIZE];
     struct Date from_date;
     struct Date to_date;
@@ -118,7 +120,7 @@ int main() {
                     printf("Customer %d was successfully added.\n", customer_id);
                     customersLength++;
                 } else {
-                    printf("Error: number of customers has reached the limit %d.", CUSTOMERS_SIZE);
+                    printf("Error: number of customers has reached the limit %d.\n", CUSTOMERS_SIZE);
                 }
                 break;
             case 2:
@@ -139,7 +141,7 @@ int main() {
                                account_id);
                     }
                 } else {
-                    printf("Error: number of accounts has reached the limit %d.", ACCOUNTS_SIZE);
+                    printf("Error: number of accounts has reached the limit %d.\n", ACCOUNTS_SIZE);
                 }
                 break;
             case 3:
@@ -148,14 +150,14 @@ int main() {
                 pAccount = findAccountById(accounts, accountsLength, account_id);
                 if (pAccount != NULL) {
                     printf("Amount to deposit: ");
-                    scanf("%d", &amount);
+                    scanf("%f", &amount);
                     fflush(stdin);
                     printf("Your Name: ");
                     fgets(str, TRAN_BUFFER_SIZE, stdin);
                     str[strcspn(str, "\n")] = 0;
                     transaction = newTransaction(amount, str);
                     if (deposit(pAccount, transaction) == TRUE) {
-                        printf("Deposit %d$ to account_id %d is done.\n", amount, account_id);
+                        printf("Deposit %.2f$ to account_id %d is done.\n", amount, account_id);
                     } else {
                         printf("Error: number of deposits has reached the limit %d.\n", ACCT_DEPOSITS_SIZE);
                     }
@@ -177,7 +179,7 @@ int main() {
                     str[strcspn(str, "\n")] = 0;
                     transaction = newTransaction(amount, str);
                     if (withdraw(pAccount, transaction) == TRUE) {
-                        printf("Withdraw %d$ to account_id %d is done.\n", amount, account_id);
+                        printf("Withdraw %.2f$ to account_id %d is done.\n", amount, account_id);
                     } else {
                         printf("Error: number of withdrawals has reached the limit %d.\n", ACCT_WITHDRAWALS_SIZE);
                     }
@@ -189,9 +191,11 @@ int main() {
                 listCustomerAccounts(customers, customersLength);
                 break;
             case 6:
+                printf("Account ID: ");
+                scanf("%d", &account_id);
                 from_date = inputDate();
                 to_date = inputDate();
-                generateReport(accounts, account_id, from_date, to_date);
+                generateReport(accounts, accountsLength, account_id, from_date, to_date);
                 break;
         }
     } while (choice != 0);
@@ -280,12 +284,43 @@ void listCustomerAccounts(struct Customer customers[], int customers_len) {
             printf("%*.*s\n", 0, 70, padding);
         }
     } else {
-        printf("\nNo customers found.");
+        printf("\nNo customers found.\n");
     }
 }
 
-void generateReport(struct Account accounts[], int account_id, struct Date from_date, struct Date to_date) {
-    printf("report");
+void generateReport(struct Account accounts[], int accounts_len, int id, struct Date from_date, struct Date to_date) {
+    char *padding = "----------------------------------------------------------------------------------------------------";
+    char full_name[TRAN_BUFFER_SIZE];
+    printf("\nGenerating Report for account %d\n", id);
+    for (int i = 0; i < accounts_len; i++) {
+        if (accounts[i].id == id) {
+            strcpy(full_name, (accounts[i].pCustomer)->first_name);
+            strcat(full_name, " ");
+            strcat(full_name, (accounts[i].pCustomer)->last_name);
+            printf("%*.*s\n", 0, 50, padding);
+            printf("Report for %-20s\tAccount %-9d\n", full_name, id);
+            printf("%*.*s\n", 0, 50, padding);
+            if (accounts[i].transactions_len > 0) {
+                printf("| %-10s\t| %-10s\t| %-10s |\n", "Date", "Deposit", "Withdraw");
+                printf("%*.*s\n", 0, 50, padding);
+                for (int j = 0; j < accounts[i].transactions_len; j++) {
+                    if (isDateBetween(accounts[i].transactions[j]->date, from_date, to_date)) {
+                        printf("| %02d\\%02d\\%-4d\t",accounts[i].transactions[j]->date.day,accounts[i].transactions[j]->date.month,accounts[i].transactions[j]->date.year);
+                        if (accounts[i].transactions[j]->amount > 0) {
+                            printf("| %-10.2f\t| %-10s |\n", accounts[i].transactions[j]->amount, "-");
+                        } else {
+                            printf("| %-10s\t| %-10.2f |\n", "-", accounts[i].transactions[j]->amount);
+                        }
+                    }
+                }
+            } else {
+                printf("-> No transactions found.\n");
+            }
+            printf("%*.*s\n", 0, 50, padding);
+            return;
+        }
+    }
+    printf("Error: Account %d was not found.\n", id);
 }
 
 struct Customer *findCustomerById(struct Customer customers[], int customers_len, int id) {
@@ -325,4 +360,15 @@ struct Date inputDate() {
     printf("Enter day: ");
     scanf("%d", &date.day);
     return date;
+}
+
+int isDateBetween(struct Date date, struct Date from_date, struct Date to_date) {
+    if (date.year >= from_date.year && date.year <=to_date.year) {
+        if (date.month >= from_date.month && date.month <=to_date.month) {
+            if (date.day >= from_date.day && date.day <=to_date.day) {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
 }
