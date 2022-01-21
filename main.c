@@ -254,23 +254,33 @@ int withdraw(struct Account *pAccount, struct Transaction transaction) {
 }
 
 void listCustomerAccounts(struct Customer customers[], int customers_len) {
+    char *padding = "----------------------------------------------------------------------------------------------------";
     if (customers_len > 0) {
-        printf("\n\nCustomer\tName\n");
+        printf("\n| %-12s\t| %-20s | %-12s\t| %-10s |\n", "Customer ID", "Customer Name", "Account ID", "Balance");
+        printf("%*.*s\n", 0, 70, padding);
         for (int i = 0; i < customers_len; i++) {
-            if (customers[i].id != 0) {
-                printf("%d\t%s %s\n", customers[i].id, customers[i].first_name, customers[i].last_name);
-                if (customers->accounts_len > 0) {
-                    printf("\t-> Account\tBalance\n");
-                    for (int j = 0; j < customers->accounts_len; j++) {
-                        printf("\t-> %d\t%.2f\n", customers->accounts[j]->id, customers->accounts[j]->balance);
+            if (customers[i].id != -1) {
+                char full_name[TRAN_BUFFER_SIZE];
+                strcpy(full_name, customers[i].first_name);
+                strcat(full_name, " ");
+                strcat(full_name, customers[i].last_name);
+                printf("| %-12d\t| %-20s |", customers[i].id, full_name);
+                if (customers[i].accounts_len > 0) {
+                    for (int j = 0; j < customers[i].accounts_len; j++) {
+                        if (j == 0) {
+                            printf(" %-12d\t| %-10.2f |\n", customers[i].accounts[j]->id, customers[i].accounts[j]->balance);
+                        } else {
+                            printf("| %-12s\t| %-20s | %-12d\t| %-10.2f |\n", "", "", customers[i].accounts[j]->id, customers[i].accounts[j]->balance);
+                        }
                     }
                 } else {
-                    printf("\t -> No accounts found.");
+                    printf(" %-12s\t| %-10s |\n", "-", "-");
                 }
             }
+            printf("%*.*s\n", 0, 70, padding);
         }
     } else {
-        printf("\t -> No customers found.");
+        printf("\nNo customers found.");
     }
 }
 
