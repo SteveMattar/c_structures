@@ -4,37 +4,24 @@
 
 #define CUSTOMERS_SIZE 100
 #define ACCOUNTS_SIZE 250
-#define CUST_ACCOUNTS_SIZE 5
 #define ACCT_DEPOSITS_SIZE 250
-#define ACCT_WITHDRAWALS_SIZE 750
+#define ACCT_WITHDRAWALS_SIZE 250
 #define TRAN_BUFFER_SIZE 40
 #define TRUE 1
 #define FALSE 0
 
-struct Customer;
-struct Account;
-struct Transaction;
-struct Date;
+typedef struct Customer Customer;
+typedef struct Account Account;
+typedef struct Transaction Transaction;
+typedef struct Date Date;
 
 struct Customer {
     int id;
     char first_name[TRAN_BUFFER_SIZE];
     char last_name[TRAN_BUFFER_SIZE];
-    struct Account *accounts[CUST_ACCOUNTS_SIZE];
+    Account *accounts[ACCT_DEPOSITS_SIZE];
     int accounts_len;
-};
-
-struct Account {
-    int id;
-    struct Customer *pCustomer;
-    float balance;
-    struct Transaction *deposits[ACCT_DEPOSITS_SIZE];
-    struct Transaction *withdrawals[ACCT_WITHDRAWALS_SIZE];
-    struct Transaction *transactions[ACCT_DEPOSITS_SIZE+ACCT_WITHDRAWALS_SIZE];
-    int deposits_len;
-    int withdrawals_len;
-    int transactions_len;
-};
+} default_cust = {-1, "\0", "\0", {NULL}, 0};
 
 struct Date {
     int day;
@@ -43,53 +30,67 @@ struct Date {
 };
 
 struct Transaction {
-    struct Date date;
+    Date date;
     float amount;
     char str[TRAN_BUFFER_SIZE];
+} default_tran = {-1, -1, -1, 0, "\0"};
+
+struct Account {
+    int id;
+    Customer *pCustomer;
+    float balance;
+    Transaction deposits[ACCT_DEPOSITS_SIZE];
+    Transaction withdrawals[ACCT_WITHDRAWALS_SIZE];
+    Transaction *transactions[ACCT_DEPOSITS_SIZE + ACCT_WITHDRAWALS_SIZE];
+    int deposits_len;
+    int withdrawals_len;
+    int transactions_len;
 };
 
-struct Customer newCustomer(int, char[], char[]);
+Customer newCustomer(int, char[], char[]);
 
-struct Account newAccount(struct Customer *, int);
+Account newAccount(Customer *, int);
 
-struct Transaction newTransaction(float, char[]);
+Transaction newTransaction(float, char[]);
 
-int deposit(struct Account *, struct Transaction);
+int deposit(Account *, Transaction);
 
-int withdraw(struct Account *, struct Transaction);
+int withdraw(Account *, Transaction);
 
-void listCustomerAccounts(struct Customer[], int);
+void listCustomerAccounts(Customer[], int);
 
-void generateReport(struct Account[], int, int, struct Date, struct Date);
+void generateReport(Account[], int, int, Date, Date);
 
-struct Customer *findCustomerById(struct Customer[],int, int);
+Customer *findCustomerById(Customer[], int, int);
 
-struct Account *findAccountById(struct Account[], int, int);
+Account *findAccountById(Account[], int, int);
 
-struct Date getCurrentDate();
+Date getCurrentDate();
 
-struct Date inputDate();
+Date inputDate();
 
-int isDateBetween(struct Date, struct Date, struct Date);
+int dateCmp(Date, Date);
+
+int isDateBetween(Date, Date, Date);
 
 
 int main() {
-    struct Customer customers[CUSTOMERS_SIZE] = {{-1,"\0","\0",NULL,0}};
-    struct Account accounts[ACCOUNTS_SIZE] = {{-1,NULL,0, NULL,NULL,NULL,0,0,0}};
+    Customer customers[CUSTOMERS_SIZE] = {default_cust};
+    Account accounts[ACCOUNTS_SIZE] = {{-1, NULL, 0, {default_tran}, {default_tran}, {NULL}, 0, 0, 0}};
     int customersLength = 0, accountsLength = 0;
 
     int choice;
-    struct Customer *pCustomer;
-    struct Account *pAccount;
-    struct Transaction transaction;
+    Customer *pCustomer;
+    Account *pAccount;
+    Transaction transaction;
     int customer_id;
     char first_name[TRAN_BUFFER_SIZE];
     char last_name[TRAN_BUFFER_SIZE];
     int account_id;
     float amount;
     char str[TRAN_BUFFER_SIZE];
-    struct Date from_date;
-    struct Date to_date;
+    Date from_date;
+    Date to_date;
 
     do {
         printf("\nBanking System Menu:\n");
@@ -102,6 +103,7 @@ int main() {
         printf("0) Exit\n");
         printf("\nEnter choice(0-6): ");
         scanf("%d", &choice);
+        fflush(stdin);
 
         switch (choice) {
             case 1:
@@ -110,6 +112,11 @@ int main() {
                     printf("ID: ");
                     scanf("%d", &customer_id);
                     fflush(stdin);
+                    pCustomer = findCustomerById(customers, customersLength, customer_id);
+                    if (pCustomer != NULL) {
+                        printf("Error: customer %d already exists.\n", customer_id);
+                        break;
+                    }
                     printf("First Name: ");
                     fgets(first_name, TRAN_BUFFER_SIZE, stdin);
                     first_name[strcspn(first_name, "\n")] = 0;
@@ -128,6 +135,7 @@ int main() {
                     printf("Create a new account:\n");
                     printf("Enter Customer ID: ");
                     scanf("%d", &customer_id);
+                    fflush(stdin);
                     pCustomer = findCustomerById(customers, customersLength, customer_id);
                     if (pCustomer != NULL) {
                         account_id = accountsLength + 200;
@@ -147,6 +155,7 @@ int main() {
             case 3:
                 printf("Account ID: ");
                 scanf("%d", &account_id);
+                fflush(stdin);
                 pAccount = findAccountById(accounts, accountsLength, account_id);
                 if (pAccount != NULL) {
                     printf("Amount to deposit: ");
@@ -168,11 +177,13 @@ int main() {
             case 4:
                 printf("Account ID: ");
                 scanf("%d", &account_id);
-                pAccount = findAccountById(accounts, accountsLength,account_id);
+                fflush(stdin);
+                pAccount = findAccountById(accounts, accountsLength, account_id);
                 if (pAccount != NULL) {
                     printf("Amount to withdraw: ");
                     scanf("%f", &amount);
-                    amount*=-1;
+                    fflush(stdin);
+                    amount *= -1;
                     fflush(stdin);
                     printf("Enter the reason for the withdrawal: ");
                     fgets(str, TRAN_BUFFER_SIZE, stdin);
@@ -193,7 +204,10 @@ int main() {
             case 6:
                 printf("Account ID: ");
                 scanf("%d", &account_id);
+                fflush(stdin);
+                printf("From date\n");
                 from_date = inputDate();
+                printf("To date\n");
                 to_date = inputDate();
                 generateReport(accounts, accountsLength, account_id, from_date, to_date);
                 break;
@@ -203,8 +217,8 @@ int main() {
     return 0;
 }
 
-struct Customer newCustomer(int customer_id, char first_name[], char last_name[]) {
-    struct Customer customer;
+Customer newCustomer(int customer_id, char first_name[], char last_name[]) {
+    Customer customer;
     customer.id = customer_id;
     strcpy(customer.first_name, first_name);
     strcpy(customer.last_name, last_name);
@@ -212,8 +226,8 @@ struct Customer newCustomer(int customer_id, char first_name[], char last_name[]
     return customer;
 }
 
-struct Account newAccount(struct Customer *pCustomer, int account_id) {
-    struct Account account;
+Account newAccount(Customer *pCustomer, int account_id) {
+    Account account;
     account.id = account_id;
     account.balance = 0;
     account.pCustomer = pCustomer;
@@ -223,19 +237,19 @@ struct Account newAccount(struct Customer *pCustomer, int account_id) {
     return account;
 }
 
-struct Transaction newTransaction(float amount, char str[]) {
-    struct Transaction transaction;
+Transaction newTransaction(float amount, char str[]) {
+    Transaction transaction;
     transaction.amount = amount;
     strcpy(transaction.str, str);
     transaction.date = getCurrentDate();
     return transaction;
 }
 
-int deposit(struct Account *pAccount, struct Transaction transaction) {
+int deposit(Account *pAccount, Transaction transaction) {
     if (pAccount->deposits_len < ACCT_DEPOSITS_SIZE) {
-        pAccount->deposits[pAccount->deposits_len] = &transaction;
+        pAccount->deposits[pAccount->deposits_len] = transaction;
+        pAccount->transactions[pAccount->transactions_len] = &(pAccount->deposits[pAccount->deposits_len]);
         pAccount->deposits_len++;
-        pAccount->transactions[pAccount->transactions_len] = pAccount->deposits[pAccount->deposits_len];
         pAccount->transactions_len++;
         pAccount->balance += transaction.amount;
         return TRUE;
@@ -244,11 +258,11 @@ int deposit(struct Account *pAccount, struct Transaction transaction) {
     }
 }
 
-int withdraw(struct Account *pAccount, struct Transaction transaction) {
+int withdraw(Account *pAccount, Transaction transaction) {
     if (pAccount->withdrawals_len < ACCT_WITHDRAWALS_SIZE) {
-        pAccount->withdrawals[pAccount->withdrawals_len] = &transaction;
+        pAccount->withdrawals[pAccount->withdrawals_len] = transaction;
+        pAccount->transactions[pAccount->transactions_len] = &(pAccount->withdrawals[pAccount->withdrawals_len]);
         pAccount->withdrawals_len++;
-        pAccount->transactions[pAccount->transactions_len] = pAccount->withdrawals[pAccount->withdrawals_len];
         pAccount->transactions_len++;
         pAccount->balance += transaction.amount;
         return TRUE;
@@ -257,7 +271,7 @@ int withdraw(struct Account *pAccount, struct Transaction transaction) {
     }
 }
 
-void listCustomerAccounts(struct Customer customers[], int customers_len) {
+void listCustomerAccounts(Customer customers[], int customers_len) {
     char *padding = "----------------------------------------------------------------------------------------------------";
     if (customers_len > 0) {
         printf("\n| %-12s\t| %-20s | %-12s\t| %-10s |\n", "Customer ID", "Customer Name", "Account ID", "Balance");
@@ -272,9 +286,11 @@ void listCustomerAccounts(struct Customer customers[], int customers_len) {
                 if (customers[i].accounts_len > 0) {
                     for (int j = 0; j < customers[i].accounts_len; j++) {
                         if (j == 0) {
-                            printf(" %-12d\t| %-10.2f |\n", customers[i].accounts[j]->id, customers[i].accounts[j]->balance);
+                            printf(" %-12d\t| %-10.2f |\n", customers[i].accounts[j]->id,
+                                   customers[i].accounts[j]->balance);
                         } else {
-                            printf("| %-12s\t| %-20s | %-12d\t| %-10.2f |\n", "", "", customers[i].accounts[j]->id, customers[i].accounts[j]->balance);
+                            printf("| %-12s\t| %-20s | %-12d\t| %-10.2f |\n", "", "", customers[i].accounts[j]->id,
+                                   customers[i].accounts[j]->balance);
                         }
                     }
                 } else {
@@ -288,42 +304,44 @@ void listCustomerAccounts(struct Customer customers[], int customers_len) {
     }
 }
 
-void generateReport(struct Account accounts[], int accounts_len, int id, struct Date from_date, struct Date to_date) {
+void generateReport(Account accounts[], int accounts_len, int id, Date from_date, Date to_date) {
     char *padding = "----------------------------------------------------------------------------------------------------";
+    int padding_len = 55;
     char full_name[TRAN_BUFFER_SIZE];
-    printf("\nGenerating Report for account %d\n", id);
+    printf("\nGenerating Report...\n");
     for (int i = 0; i < accounts_len; i++) {
         if (accounts[i].id == id) {
             strcpy(full_name, (accounts[i].pCustomer)->first_name);
             strcat(full_name, " ");
             strcat(full_name, (accounts[i].pCustomer)->last_name);
-            printf("%*.*s\n", 0, 50, padding);
-            printf("Report for %-20s\tAccount %-9d\n", full_name, id);
-            printf("%*.*s\n", 0, 50, padding);
+            printf("%*.*s\n", 0, padding_len, padding);
+            printf("| Report for %-20s\tAccount %-9d |\n", full_name, id);
+            printf("%*.*s\n", 0, padding_len, padding);
             if (accounts[i].transactions_len > 0) {
-                printf("| %-10s\t| %-10s\t| %-10s |\n", "Date", "Deposit", "Withdraw");
-                printf("%*.*s\n", 0, 50, padding);
+                printf("| %-10s\t| %-15s\t| %-15s |\n", "Date", "Deposit", "Withdraw");
+                printf("%*.*s\n", 0, padding_len, padding);
                 for (int j = 0; j < accounts[i].transactions_len; j++) {
                     if (isDateBetween(accounts[i].transactions[j]->date, from_date, to_date)) {
-                        printf("| %02d\\%02d\\%-4d\t",accounts[i].transactions[j]->date.day,accounts[i].transactions[j]->date.month,accounts[i].transactions[j]->date.year);
+                        printf("| %02d/%02d/%-4d\t", accounts[i].transactions[j]->date.day,
+                               accounts[i].transactions[j]->date.month, accounts[i].transactions[j]->date.year);
                         if (accounts[i].transactions[j]->amount > 0) {
-                            printf("| %-10.2f\t| %-10s |\n", accounts[i].transactions[j]->amount, "-");
+                            printf("| %-15.2f\t| %-15s |\n", accounts[i].transactions[j]->amount, "-");
                         } else {
-                            printf("| %-10s\t| %-10.2f |\n", "-", accounts[i].transactions[j]->amount);
+                            printf("| %-15s\t| %-15.2f |\n", "-", accounts[i].transactions[j]->amount);
                         }
                     }
                 }
             } else {
                 printf("-> No transactions found.\n");
             }
-            printf("%*.*s\n", 0, 50, padding);
+            printf("%*.*s\n", 0, padding_len, padding);
             return;
         }
     }
     printf("Error: Account %d was not found.\n", id);
 }
 
-struct Customer *findCustomerById(struct Customer customers[], int customers_len, int id) {
+Customer *findCustomerById(Customer customers[], int customers_len, int id) {
     for (int i = 0; i < customers_len; i++) {
         if (customers[i].id == id) {
             return &customers[i];
@@ -332,7 +350,7 @@ struct Customer *findCustomerById(struct Customer customers[], int customers_len
     return NULL;
 }
 
-struct Account *findAccountById(struct Account accounts[], int accounts_len, int id) {
+Account *findAccountById(Account accounts[], int accounts_len, int id) {
     for (int i = 0; i < accounts_len; i++) {
         if (accounts[i].id == id) {
             return &accounts[i];
@@ -341,8 +359,8 @@ struct Account *findAccountById(struct Account accounts[], int accounts_len, int
     return NULL;
 }
 
-struct Date getCurrentDate() {
-    struct Date date;
+Date getCurrentDate() {
+    Date date;
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     date.year = tm.tm_year + 1900;
@@ -351,24 +369,33 @@ struct Date getCurrentDate() {
     return date;
 }
 
-struct Date inputDate() {
-    struct Date date;
-    printf("Enter year: ");
+Date inputDate() {
+    Date date;
+    printf(" -> year: ");
     scanf("%d", &date.year);
-    printf("Enter month: ");
+    fflush(stdin);
+    printf(" -> month: ");
     scanf("%d", &date.month);
-    printf("Enter day: ");
+    fflush(stdin);
+    printf(" -> day: ");
     scanf("%d", &date.day);
+    fflush(stdin);
     return date;
 }
 
-int isDateBetween(struct Date date, struct Date from_date, struct Date to_date) {
-    if (date.year >= from_date.year && date.year <=to_date.year) {
-        if (date.month >= from_date.month && date.month <=to_date.month) {
-            if (date.day >= from_date.day && date.day <=to_date.day) {
-                return TRUE;
-            }
-        }
-    }
+int dateCmp(Date date1, Date date2) {
+    if (date1.year < date2.year) return TRUE; // compare years
+    if (date1.year == date2.year && date1.month < date2.month)
+        return TRUE; // compare months - but make sure years are equal
+    if (date1.year == date2.year && date1.month == date2.month && date1.day < date2.day)
+        return TRUE; // compare days but make sure years and months are equal
     return FALSE;
+}
+
+int isDateBetween(Date date, Date from_date, Date to_date) {
+    if (dateCmp(from_date, date) && dateCmp(date, to_date)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
